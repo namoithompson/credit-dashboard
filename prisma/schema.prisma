@@ -1,0 +1,125 @@
+
+datasource db {
+  provider = env("DB_PROVIDER")
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  STAFF
+  CLIENT
+}
+
+enum DocType {
+  CREDIT_FILE
+  ID
+  BILLING
+  OTHER
+}
+
+enum Bureau {
+  EQUIFAX
+  ILLION
+  EXPERIAN
+}
+
+enum DisputeStatus {
+  CURRENT
+  COMPLETED
+}
+
+model User {
+  id        String  @id @default(cuid())
+  email     String  @unique
+  password  String
+  role      Role    @default(CLIENT)
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  clients   Client[]
+}
+
+model Client {
+  id        String  @id @default(cuid())
+  firstName String
+  middleName String?
+  lastName  String
+  dob       DateTime?
+  email     String?
+  phone     String?
+  address   String?
+  userId    String?
+  user      User?   @relation(fields: [userId], references: [id])
+  documents Document[]
+  scores    BureauScore[]
+  disputes  Dispute[]
+  activities Activity[]
+  paymentMethods PaymentMethod[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Document {
+  id        String @id @default(cuid())
+  clientId  String
+  client    Client @relation(fields: [clientId], references: [id])
+  type      DocType
+  bureau    Bureau?
+  filename  String
+  mime      String
+  size      Int
+  uploadedBy String?
+  extractedAt DateTime?
+  metadata  Json?
+  createdAt DateTime @default(now())
+}
+
+model BureauScore {
+  id        String @id @default(cuid())
+  clientId  String
+  client    Client @relation(fields: [clientId], references: [id])
+  bureau    Bureau
+  score     Int
+  scoreDate DateTime
+  sourceDocumentId String?
+  createdAt DateTime @default(now())
+
+  @@unique([clientId, bureau])
+}
+
+model Dispute {
+  id         String @id @default(cuid())
+  clientId   String
+  client     Client @relation(fields: [clientId], references: [id])
+  providerName String
+  refNumber  String?
+  valueAud   Float?
+  status     DisputeStatus @default(CURRENT)
+  createdAt  DateTime @default(now())
+}
+
+model Activity {
+  id        String @id @default(cuid())
+  clientId  String
+  client    Client @relation(fields: [clientId], references: [id])
+  entity    String
+  action    String
+  result    String?
+  daysElapsed Int?
+  date      DateTime @default(now())
+}
+
+model PaymentMethod {
+  id        String @id @default(cuid())
+  clientId  String
+  client    Client @relation(fields: [clientId], references: [id])
+  brand     String?
+  last4     String?
+  expMonth  Int?
+  expYear   Int?
+  createdAt DateTime @default(now())
+}
